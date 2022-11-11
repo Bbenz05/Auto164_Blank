@@ -1,0 +1,44 @@
+#For all concerned, I do understand that I could just turn off port security. However that is a STIG violation. This program is meant to be run when we are notified of muiltiple users unable to connect to domain after changing desks. 
+
+from netmiko import ConnectHandler
+from textfsm import TextFSM
+
+
+device1 = {
+    "device_type": "cisco_ios",
+    "ip": "10.0.0.1",
+    "username": "enter_username_here",
+    "password": "enterpass_here",
+    "secret": "enter_secret_here",
+}
+device2 = {
+    "device_type": "cisco_ios",
+    "ip": "10.0.0.2",
+    "username": "enter_username_here",
+    "password": "enterpass_here",
+    "secret": "enter_secret_here",
+}
+device3 = {
+    "device_type": "cisco_ios",
+    "ip": "10.0.0.3",
+    "username": "enter_username_here",
+    "password": "enter_pass_here",
+    "secret": "enter_secret_here",
+}
+
+for device in (device1, device2, device3):
+    net_connect = ConnectHandler(**device)
+    net_connect.enable()
+    interfaces = net_connect.send_command("show int status", use_textfsm=True)
+    print(interfaces)
+    for port in interfaces:
+         if port['status'] == 'err-disabled':
+             print('Recovering' + port['port'])
+             commands = ['int' + port['port'], 'shut', 'no switchport port-security mac-address ',
+                         'no switchport port-security', 'switchport port-security',
+                         'switchport port-security mac-address sticky', 'no shut']
+             net_connect.send_config_set(commands)
+             print('Recovered')
+net_connect.disconnect()
+Footer
+© 2022 GitHub, Inc.
